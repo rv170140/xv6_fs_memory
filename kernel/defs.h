@@ -19,6 +19,9 @@ void            bwrite(struct buf*);
 void            bpin(struct buf*);
 void            bunpin(struct buf*);
 
+struct  buf *get_mod_buf(int dev,uint blockno);
+void init_mod_fs(int dev);
+
 // console.c
 void            consoleinit(void);
 void            consoleintr(int);

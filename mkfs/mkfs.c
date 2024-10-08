@@ -32,6 +32,8 @@ char zeroes[BSIZE];
 uint freeinode = 1;
 uint freeblock;
 
+char user_program_flag = 0;
+
 
 void balloc(int);
 void wsect(uint, void*);
@@ -90,7 +92,7 @@ main(int argc, char *argv[])
     die(argv[1]);
 
   // 1 fs block = 1 disk sector
-  nmeta = 2 + nlog + ninodeblocks + nbitmap;
+  nmeta = 2 + nlog + ninodeblocks + 2*nbitmap; // modstart 2 *
   nblocks = FSSIZE - nmeta;
 
   sb.magic = FSMAGIC;
@@ -102,6 +104,16 @@ main(int argc, char *argv[])
   sb.inodestart = xint(2+nlog);
   sb.bmapstart = xint(2+nlog+ninodeblocks);
 
+
+  sb.userbmapstart = xint(sb.bmapstart + nbitmap); //modstart
+  sb.userbcount = 0;
+
+  //mod_start
+  sb.dstart = xint(nmeta);
+  //mod_finish
+
+
+
   printf("nmeta %d (boot, super, log blocks %u inode blocks %u, bitmap blocks %u) blocks %d total %d\n",
          nmeta, nlog, ninodeblocks, nbitmap, nblocks, FSSIZE);
 
@@ -110,9 +122,11 @@ main(int argc, char *argv[])
   for(i = 0; i < FSSIZE; i++)
     wsect(i, zeroes);
 
-  memset(buf, 0, sizeof(buf));
-  memmove(buf, &sb, sizeof(sb));
-  wsect(1, buf);
+  //mod_start
+//  memset(buf, 0, sizeof(buf));
+//  memmove(buf, &sb, sizeof(sb));
+//  wsect(1, buf);
+  //mod_finish
 
   rootino = ialloc(T_DIR);
   assert(rootino == ROOTINO);
@@ -145,8 +159,10 @@ main(int argc, char *argv[])
     // build operating system from trying to execute them
     // in place of system binaries like rm and cat.
     if(shortname[0] == '_')
+      {
       shortname += 1;
-
+      user_program_flag = 1;
+}
     inum = ialloc(T_FILE);
 
     bzero(&de, sizeof(de));
@@ -154,8 +170,10 @@ main(int argc, char *argv[])
     strncpy(de.name, shortname, DIRSIZ);
     iappend(rootino, &de, sizeof(de));
 
+
     while((cc = read(fd, buf, sizeof(buf))) > 0)
       iappend(inum, buf, cc);
+    user_program_flag = 0;
 
     close(fd);
   }
@@ -168,6 +186,15 @@ main(int argc, char *argv[])
   winode(rootino, &din);
 
   balloc(freeblock);
+
+  //mod_start
+  sb.dfinish = xint(freeblock);
+  sb.ffinode = xint(freeinode);
+
+  memset(buf, 0, sizeof(buf));
+  memmove(buf, &sb, sizeof(sb));
+  wsect(1, buf);
+  //mod_finish
 
   exit(0);
 }
@@ -247,6 +274,18 @@ balloc(int used)
   wsect(sb.bmapstart, buf);
 }
 
+//modstart
+void add_user_prog_block(uint inum)
+{
+  uchar buf[BSIZE];
+  rsect(UBBLOCK(inum, sb), &buf);
+  uint i = inum%(BSIZE*8);
+  buf[i/8] = buf[i/8] | (0x1 << (i%8));
+  wsect(UBBLOCK(inum, sb), &buf);
+
+  sb.userbcount ++;
+
+}//mod_finish
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
 void
@@ -267,6 +306,7 @@ iappend(uint inum, void *xp, int n)
     assert(fbn < MAXFILE);
     if(fbn < NDIRECT){
       if(xint(din.addrs[fbn]) == 0){
+        if(user_program_flag) add_user_prog_block(freeblock); //mod
         din.addrs[fbn] = xint(freeblock++);
       }
       x = xint(din.addrs[fbn]);
@@ -276,6 +316,7 @@ iappend(uint inum, void *xp, int n)
       }
       rsect(xint(din.addrs[NDIRECT]), (char*)indirect);
       if(indirect[fbn - NDIRECT] == 0){
+        if(user_program_flag) add_user_prog_block(freeblock);//mod
         indirect[fbn - NDIRECT] = xint(freeblock++);
         wsect(xint(din.addrs[NDIRECT]), (char*)indirect);
       }
@@ -291,6 +332,7 @@ iappend(uint inum, void *xp, int n)
   }
   din.size = xint(off);
   winode(inum, &din);
+
 }
 
 void

@@ -20,6 +20,14 @@ struct superblock {
   uint logstart;     // Block number of first log block
   uint inodestart;   // Block number of first inode block
   uint bmapstart;    // Block number of first free map block
+
+  //mod_start
+  uint userbcount;
+  uint userbmapstart;
+  uint dstart;
+  uint dfinish;
+  uint ffinode;
+ // mod_end*/
 };
 
 #define FSMAGIC 0x10203040
@@ -49,7 +57,8 @@ struct dinode {
 
 // Block of free map containing bit for block b
 #define BBLOCK(b, sb) ((b)/BPB + sb.bmapstart)
-
+// Block of user map containing bit for block b
+#define UBBLOCK(b, sb) ((b)/BPB + sb.userbmapstart)
 // Directory is a file containing a sequence of dirent structures.
 #define DIRSIZ 14
 

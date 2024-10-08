@@ -2622,10 +2622,10 @@ struct test {
   {forktest, "forktest"},
   {forkfork, "forkfork"},
   {sbrkbasic, "sbrkbasic"},
-  {sbrkmuch, "sbrkmuch"},
+  {sbrkmuch, "sbrkmuch"},//fail
   {kernmem, "kernmem"},
-  {MAXVAplus, "MAXVAplus"},
-  {sbrkarg, "sbrkarg"},
+  {MAXVAplus, "MAXVAplus"},//fail
+  {sbrkarg, "sbrkarg"},//fail
   {validatetest, "validatetest"},
   {bsstest, "bsstest"},
   {bigargtest, "bigargtest"},

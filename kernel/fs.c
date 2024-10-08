@@ -21,14 +21,16 @@
 #include "buf.h"
 #include "file.h"
 
+
 #define min(a, b) ((a) < (b) ? (a) : (b))
 // there should be one superblock per disk device, but we run with
 // only one device
-struct superblock sb; 
+struct superblock sb;
+
 
 // Read the super block.
 static void
-readsb(int dev, struct superblock *sb)
+   readsb(int dev, struct superblock *sb)
 {
   struct buf *bp;
 
@@ -44,6 +46,8 @@ fsinit(int dev) {
   if(sb.magic != FSMAGIC)
     panic("invalid file system");
   initlog(dev, &sb);
+  init_mod_fs(dev);
+  //
 }
 
 // Zero a block.
@@ -695,3 +699,10 @@ nameiparent(char *path, char *name)
 {
   return namex(path, 1, name);
 }
+
+
+//mod_start
+
+
+
+//mod_finish
